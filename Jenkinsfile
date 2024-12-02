@@ -1,29 +1,69 @@
 pipeline {
     agent any
-    
-    stages { 
-        stage('SCM Checkout') {
+
+    environment {
+        SONARQUBE_SCANNER = tool 'SonarQubeScanner' // Update with your SonarQube Scanner tool name in Jenkins
+        SONARQUBE_SERVER = 'SonarQubeServer' // Update with your SonarQube server configuration name
+    }
+
+    stages {
+        stage('Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/revendh/hello-world.git'
+                git credentialsId: 'revendh_github_creds', url: 'https://github.com/revendh/hello-world.git', branch: 'main'
             }
         }
-        
-        // Run SonarQube analysis
-        stage('Run Sonarqube') {
+
+        stage('Build') {
+            steps {
+                script {
+                    // Make sure your project is built and compiled before SonarQube analysis.
+                    // If using Maven, add `mvn clean install` here.
+                    sh 'mvn clean compile'
+                }
+            }
+        }
+
+        stage('Run SonarQube Analysis') {
             environment {
-                scannerHome = tool 'SonarQubeScanner';
+                // Ensure SonarQube analysis environment variables are injected
+                SONARQUBE_ENV = credentials('sonar_token') // Adjust to your Jenkins credentials setup
             }
             steps {
-                withSonarQubeEnv(credentialsId: 'sonar_token', installationName: 'SonarQubeServer') {
+                withSonarQubeEnv('SonarQubeServer') {
                     sh """
-                    ${scannerHome}/bin/sonar-scanner \
+                    ${SONARQUBE_SCANNER}/bin/sonar-scanner \
                         -Dsonar.projectKey=MyApp \
                         -Dsonar.projectName=MyApp \
                         -Dsonar.projectVersion=1.0 \
-                        -Dsonar.sources=.
+                        -Dsonar.sources=. \
+                        -Dsonar.java.binaries=target/classes
                     """
                 }
             }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                script {
+                    def qualityGate = waitForQualityGate()
+                    if (qualityGate.status != 'OK') {
+                        error "Pipeline aborted due to quality gate failure: ${qualityGate.status}"
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up workspace...'
+            deleteDir()
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+        success {
+            echo 'Pipeline succeeded!'
         }
     }
 }
