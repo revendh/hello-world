@@ -2,38 +2,36 @@ pipeline {
     agent any
 
     environment {
-        // Define environment variables for tools and configurations
-        SONARQUBE_SCANNER = tool 'SonarQubeScanner' // Update this with your configured SonarQube scanner tool name in Jenkins
-        SONARQUBE_SERVER = 'SonarQubeServer'       // Update this with your configured SonarQube server name in Jenkins
-        MAVEN_HOME = tool 'Maven'                 // Update 'Maven' with the exact name of Maven in Jenkins
+        SONARQUBE_SCANNER = tool 'SonarQubeScanner' // Replace with your configured tool name
+        SONARQUBE_SERVER = 'SonarQubeServer' // Replace with your configured server name
     }
 
     stages {
         stage('Checkout') {
             steps {
-                echo 'Checking out source code from Git repository...'
-                git branch: 'master', url: 'https://github.com/revendh/hello-world.git', credentialsId: 'revendh_github_creds'
+                git credentialsId: 'revendh_github_creds', url: 'https://github.com/revendh/hello-world.git', branch: 'master'
             }
         }
 
         stage('Build') {
             steps {
-                echo 'Running Maven build...'
-                sh "${MAVEN_HOME}/bin/mvn clean compile"
+                script {
+                    def mvnHome = tool 'Maven' // Replace 'Maven' with the configured name in Jenkins
+                    sh "${mvnHome}/bin/mvn clean compile -pl server -am" // Compile the "server" module
+                }
             }
         }
 
         stage('Run SonarQube Analysis') {
             steps {
-                echo 'Running SonarQube static code analysis...'
                 withSonarQubeEnv('SonarQubeServer') {
                     sh """
                     ${SONARQUBE_SCANNER}/bin/sonar-scanner \
                         -Dsonar.projectKey=MyApp \
                         -Dsonar.sources=. \
-                        -Dsonar.java.binaries=target/classes \
-                        -Dsonar.host.url=$SONAR_HOST_URL \
-                        -Dsonar.login=${SONAR_AUTH_TOKEN}
+                        -Dsonar.java.binaries=server/target/classes \
+                        -Dsonar.host.url=http://10.45.88.133:9000 \
+                        -Dsonar.login=****** // Replace with your token
                     """
                 }
             }
@@ -41,7 +39,6 @@ pipeline {
 
         stage('Quality Gate') {
             steps {
-                echo 'Waiting for SonarQube quality gate result...'
                 script {
                     def qualityGate = waitForQualityGate()
                     if (qualityGate.status != 'OK') {
@@ -54,14 +51,13 @@ pipeline {
 
     post {
         always {
-            echo 'Cleaning up workspace...'
-            deleteDir() // Deletes the workspace after the pipeline
-        }
-        success {
-            echo 'Pipeline succeeded!'
+            deleteDir()
         }
         failure {
             echo 'Pipeline failed! Check the logs for details.'
+        }
+        success {
+            echo 'Pipeline succeeded!'
         }
     }
 }
