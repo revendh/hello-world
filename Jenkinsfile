@@ -4,7 +4,7 @@ pipeline {
     stages { 
         stage('SCM Checkout') {
             steps {
-                git branch: 'main', url: 'https://github.com/revendh/Car-Warehouse.git'
+                git branch: 'main', url: 'https://github.com/revendh/hello-world.git'
             }
         }
         
