@@ -9,7 +9,7 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                git credentialsId: 'revendh_github_creds', url: 'https://github.com/revendh/hello-world.git', branch: 'main'
+                git credentialsId: 'revendh_github_creds', url: 'https://github.com/revendh/hello-world.git', branch: 'master'
             }
         }
 
