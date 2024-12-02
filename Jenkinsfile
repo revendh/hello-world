@@ -17,8 +17,8 @@ pipeline {
                 withSonarQubeEnv(credentialsId: 'sonar_token', installationName: 'SonarQubeServer') {
                     sh """
                     ${scannerHome}/bin/sonar-scanner \
-                        -Dsonar.projectKey=CarWarehouse \
-                        -Dsonar.projectName=CarWarehouse \
+                        -Dsonar.projectKey=MyApp \
+                        -Dsonar.projectName=MyApp \
                         -Dsonar.projectVersion=1.0 \
                         -Dsonar.sources=.
                     """
